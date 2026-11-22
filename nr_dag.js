@@ -810,7 +810,7 @@ const TITRA_FAVICON_SVG =
   `<rect x="11.6" y="5.2" width="8.8" height="2.9" rx="1.0" fill="#D4D8DF"/>` +
   `</svg>`;
 
-/** Replace the browser tab / URL bar favicon (e.g. default marimo icon) with Titra's DBS-lead emblem. */
+/** Permanently lock the browser tab / URL bar favicon to Titra's DBS-lead emblem (even when marimo updates its running/idle icon). */
 function setTitraFavicon() {
   try {
     const docs = [document];
@@ -822,12 +822,36 @@ function setTitraFavicon() {
     const href = `data:image/svg+xml,${encodeURIComponent(TITRA_FAVICON_SVG)}`;
     for (const doc of docs) {
       if (!doc || !doc.head) continue;
-      doc.querySelectorAll('link[rel*="icon"]').forEach((n) => n.remove());
-      const link = doc.createElement("link");
-      link.rel = "icon";
-      link.type = "image/svg+xml";
-      link.href = href;
-      doc.head.appendChild(link);
+      let busy = false;
+      const enforce = () => {
+        if (busy || !doc.head) return;
+        const links = Array.from(doc.querySelectorAll('link[rel*="icon"]'));
+        if (links.length === 1 && links[0].parentNode === doc.head && links[0].getAttribute("href") === href && links[0].getAttribute("type") === "image/svg+xml") return;
+        busy = true;
+        try {
+          const keep = doc.head.querySelector('link[rel*="icon"]') || doc.createElement("link");
+          for (const lk of links) {
+            if (lk !== keep) lk.remove();
+          }
+          keep.rel = "icon";
+          keep.type = "image/svg+xml";
+          keep.href = href;
+          if (keep.parentNode !== doc.head) doc.head.appendChild(keep);
+        } finally {
+          busy = false;
+        }
+      };
+      enforce();
+      const win = doc.defaultView;
+      if (win && !win.__titraFaviconLocked && typeof MutationObserver !== "undefined" && doc.documentElement) {
+        win.__titraFaviconLocked = true;
+        new MutationObserver(enforce).observe(doc.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["href", "rel", "type"],
+        });
+      }
     }
   } catch (_) {}
 }
@@ -9209,7 +9233,8 @@ function render({ model, el: host }) {
       }, 280);
     }, 2600);
 
-    // Sync clear to Python backend immediately
+    // Sync clear to Python backend immediately & keep Titra favicon locked
+    setTitraFavicon();
     inputRequest("clear");
   }
 
