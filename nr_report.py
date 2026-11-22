@@ -759,6 +759,29 @@ def _build_docx(data: dict, infographic_png: bytes | None, rasters: dict[str, by
 
 
 # ── public API ───────────────────────────────────────────────────────────
+def _stem(payload: dict, request: dict) -> str:
+    meta = payload.get("metadata") or {}
+    return f'titra_{_safe_stem(request.get("file_stem") or meta.get("file_name"))}_{_dt.datetime.now().strftime("%Y%m%d-%H%M%S")}'
+
+
+def typst_bundle(payload: dict, request: dict, modes: tuple[str, ...] = ("report", "infographic")) -> dict:
+    """Everything a browser-side Typst compiler (typst.ts) needs to render the report.
+
+    Returns {"main": template source, "files": {name: svg text}, "data": {mode: data.json text}, "stem": …}.
+    Used by the browser build, where the Typst Python package cannot run.
+    """
+    work = pathlib.Path(tempfile.mkdtemp(prefix="titra_bundle_"))
+    try:
+        fig_entries, canvas_file, _png = _write_assets(work, request)
+        data = _report_data(payload, request, fig_entries, canvas_file)
+        files = {f.name: f.read_text(encoding="utf-8") for f in sorted(work.glob("*.svg"))}
+        files["titra_icon.svg"] = TITRA_ICON_SVG
+        datas = {m: json.dumps(_clean_json(dict(data, mode=m)), ensure_ascii=False, default=str, allow_nan=False) for m in modes}
+        return {"main": TEMPLATE.read_text(encoding="utf-8"), "files": files, "data": datas, "stem": _stem(payload, request)}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def build_report(
     payload: dict,
     request: dict,
@@ -783,8 +806,7 @@ def build_report(
     if "zip" in want:
         want |= {"pdf", "docx", "png_canvas", "png_infographic", "svg"}
 
-    meta = payload.get("metadata") or {}
-    stem = f'titra_{_safe_stem(request.get("file_stem") or meta.get("file_name"))}_{_dt.datetime.now().strftime("%Y%m%d-%H%M%S")}'
+    stem = _stem(payload, request)
     res = ReportResult()
     produced: dict[str, tuple[str, str, bytes]] = {}
     extras: dict[str, bytes] = {}  # extra ZIP members (LaTeX source, object PNG/SVG)
@@ -817,8 +839,15 @@ def build_report(
                     client[k] = _b64.b64decode(v)
                 except Exception:
                     pass
+            # PDF / infographic compiled in the browser with typst.ts (same template, same data)
+            client_pdf = _b64.b64decode(request["client_pdf"]) if request.get("client_pdf") else None
+            client_info = _b64.b64decode(request["client_infographic"]) if request.get("client_infographic") else None
+            if client_pdf and "pdf" in want:
+                produced["pdf"] = (f"{stem}.pdf", MIME["pdf"], client_pdf)
+            if client_info and "png_infographic" in want:
+                produced["png_infographic"] = (f"{stem}_infographic.png", MIME["png"], client_info)
             if "docx" in want:
-                docx = attempt("docx", lambda: _build_docx(data, None, client, png_items))
+                docx = attempt("docx", lambda: _build_docx(data, client_info, client, png_items))
                 if docx:
                     produced["docx"] = (f"{stem}.docx", MIME["docx"], docx)
             if "png_canvas" in want and "canvas" in client:
@@ -827,7 +856,7 @@ def build_report(
                 if it["key"].startswith("fig_") and it["key"] in client:
                     extras[f'objects/{it["key"]}_{_safe_stem(it.get("title", ""))[:40]}.png'] = client[it["key"]]
             # browser build (figures supplied): PDF / infographic are simply not offered there → no error
-            skip = {"pdf", "png_infographic"} if client else set()
+            skip = {"pdf", "png_infographic"} if (client or client_pdf or client_info) else set()
             for k in (want - {"svg", "zip"} - set(produced) - skip) or ({"typst"} if not produced else set()):
                 if k not in res.errors:
                     res.errors[k] = err

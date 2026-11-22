@@ -359,6 +359,10 @@ class NeuroReaderDAG(anywidget.AnyWidget):
                 self.report_result = {"id": rid, "ok": True, "message": msg, "title": "Export tools installed",
                                       "elapsed_s": round(time.perf_counter() - t0, 2)}
                 return
+            if action == "typst_bundle":  # browser build: template + data for typst.ts in the page
+                self.report_result = {"id": rid, "ok": True, "bundle": nr_report.typst_bundle(self.payload, req),
+                                      "elapsed_s": round(time.perf_counter() - t0, 2)}
+                return
             self._last_report_request = req
             res = nr_report.build_report(self.payload, req, out_dir=self.report_dir)
             self.last_report = res

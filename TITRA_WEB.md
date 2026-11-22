@@ -30,9 +30,9 @@ No git? Run `build_web.py`, then upload the **contents** of `web/` to any static
 | Feature | Browser build | Desktop (marimo) |
 |---|---|---|
 | Load / verify / merge JSON files, all objects & presets | ✓ | ✓ |
-| SVG and PNG export (canvas and objects) | ✓ (rendered in the browser) | ✓ |
+| SVG and PNG export (canvas, objects, infographic) | ✓ (rendered in the browser) | ✓ |
 | Word report (.docx), ZIP of everything | ✓ | ✓ |
-| PDF report and PDF infographic (Typst) | — | ✓ |
+| PDF report, PDF infographic, object PDF (Typst) | ✓ (typst.ts, loaded on first PDF export) | ✓ |
 
 Files: `titra.py` (the notebook, desktop and web), `build_web.py` (build / preview),
 `.github/workflows/titra-pages.yml` (automatic GitHub Pages publishing).

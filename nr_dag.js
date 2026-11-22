@@ -3798,8 +3798,12 @@ function render({ model, el: host }) {
   // What the Python side can build. Desktop: everything (Typst). Browser build (WebAssembly): no Typst →
   // PNGs are rendered in the browser, Word/ZIP reports use those PNGs, PDF is not offered.
   const CAPS = Object.assign({ typst: true, docx: true, wasm: false }, model.get("capabilities") || {});
-  const MENU_REPORTS = CAPS.typst ? ["pdf", "docx", "zip"] : CAPS.docx ? ["docx", "zip"] : [];
-  const MENU_IMAGES = CAPS.typst ? ["png_infographic", "png_canvas", "svg_canvas"] : ["png_canvas", "svg_canvas"];
+  // PDF / infographic need Typst. Desktop: the Typst Python package (if missing, the export explains how
+  // to install it). Browser build: typst.ts — the same compiler as WebAssembly, loaded on first use.
+  const BROWSER_TYPST = !CAPS.typst && !!CAPS.wasm;
+  const OFFER_TYPST = true;
+  const MENU_REPORTS = OFFER_TYPST ? ["pdf", "docx", "zip"] : CAPS.docx ? ["docx", "zip"] : [];
+  const MENU_IMAGES = OFFER_TYPST ? ["png_infographic", "png_canvas", "svg_canvas"] : ["png_canvas", "svg_canvas"];
   const REPORT_ACTIONS = CAPS.wasm ? {} : {
     diagnose: "Check export setup",
     install_tools: "Install / update export tools",
@@ -3822,6 +3826,7 @@ function render({ model, el: host }) {
         }
         if (f === "svg_canvas") exportCanvasSVG();
         else if (f === "png_canvas" && !CAPS.typst) exportCanvasPNG();
+        else if (BROWSER_TYPST && ["pdf", "png_infographic", "docx", "zip"].includes(f)) browserReport(f);
         else if (REPORT_ACTIONS[f]) requestReport([], f);
         else requestReport([f]);
       },
@@ -10835,6 +10840,7 @@ function render({ model, el: host }) {
     if (!node) return;
     if (fmt === "svg") { exportSingleNodeSVG(node, opts); return; }
     if (fmt === "png" && !CAPS.typst) { exportSingleNodePNG(node, opts); return; }
+    if (fmt === "pdf" && BROWSER_TYPST) { browserObjectPDF(node, opts); return; }
     requestReport([`obj_${fmt}`], null, { node, opts });
   }
 
@@ -10858,7 +10864,7 @@ function render({ model, el: host }) {
         el("option", { value: "", text: cls === "nr-obj-export" ? "⤓" : "Export object ▾" }),
         el("option", { value: "svg", text: "SVG (vector)" }),
         el("option", { value: "png", text: "PNG (high-res)" }),
-        CAPS.typst ? el("option", { value: "pdf", text: "PDF" }) : null,
+        OFFER_TYPST ? el("option", { value: "pdf", text: "PDF" }) : null,
       ]
     );
   }
@@ -11029,11 +11035,13 @@ function render({ model, el: host }) {
     };
   }
 
-  function requestReport(formats, action = null, objectCtx = null) {
+  function requestReport(formats, action = null, objectCtx = null, prebuilt = null) {
     if (_pendingReport) { exportBadge.textContent = "A report is already being built…"; return; }
     let req;
     try {
-      req = action
+      req = prebuilt
+        ? prebuilt
+        : action
         ? { id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, action, formats: [] }
         : objectCtx
         ? collectObjectRequest(formats, objectCtx.node, objectCtx.opts)
@@ -11065,7 +11073,7 @@ function render({ model, el: host }) {
       model.set("report_request", req);
       model.save_changes();
     };
-    if (!CAPS.typst && !action && !objectCtx) {
+    if (!CAPS.typst && !action && !objectCtx && !req.rasters) {
       // no Typst on the Python side: render the figures here and send them along
       exportBadge.textContent = "Rendering figures…";
       (async () => {
@@ -11086,8 +11094,175 @@ function render({ model, el: host }) {
     }
   }
 
+  // One-shot Python calls (browser report pipeline): id → resolver
+  const _rpcWaiters = {};
+  function pythonCall(req, timeoutMs = 240000) {
+    return new Promise((resolve, reject) => {
+      const id = `rpc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const timer = setTimeout(() => { delete _rpcWaiters[id]; reject(new Error("No response from Python")); }, timeoutMs);
+      _rpcWaiters[id] = (res) => { clearTimeout(timer); res.ok ? resolve(res) : reject(new Error(res.error || "Python error")); };
+      model.set("report_request", Object.assign({}, req, { id }));
+      model.save_changes();
+    });
+  }
+
+  // ── typst.ts: the Typst compiler as WebAssembly (browser build only; loaded on first PDF export) ──
+  // Override for self-hosting / tests: window.TITRA_TYPST = { bundle, compiler, renderer, fonts: [urls] }
+  let _typstPromise = null;
+  function loadTypst() {
+    if (_typstPromise) return _typstPromise;
+    const V = "0.7.0";
+    const cfg = Object.assign({
+      bundle: `https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@${V}/dist/esm/contrib/all-in-one-lite.bundle.js`,
+      compiler: `https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-web-compiler@${V}/pkg/typst_ts_web_compiler_bg.wasm`,
+      renderer: `https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-renderer@${V}/pkg/typst_ts_renderer_bg.wasm`,
+      fonts: null, // null → Typst's default text fonts (New Computer Modern …) from the typst-assets CDN
+    }, (typeof window !== "undefined" && window.TITRA_TYPST) || {});
+    _typstPromise = new Promise((resolve, reject) => {
+      const ready = () => {
+        const ts = window.$typst;
+        if (!ts) { reject(new Error("typst.ts loaded but $typst is missing")); return; }
+        ts.setCompilerInitOptions({ getModule: () => cfg.compiler });
+        ts.setRendererInitOptions({ getModule: () => cfg.renderer });
+        if (cfg.fonts && window.TypstSnippet) {
+          ts.use(window.TypstSnippet.disableDefaultFontAssets(), window.TypstSnippet.preloadFonts(cfg.fonts));
+        }
+        resolve(ts);
+      };
+      if (window.$typst) { ready(); return; }
+      const sc = document.createElement("script");
+      sc.type = "module";
+      sc.src = cfg.bundle;
+      sc.onload = ready;
+      sc.onerror = () => { _typstPromise = null; reject(new Error(`Could not load the Typst compiler (${cfg.bundle}). Check the internet connection.`)); };
+      document.head.appendChild(sc);
+    });
+    return _typstPromise;
+  }
+  let _typstQueue = Promise.resolve();
+  /** Compile main source + files with typst.ts → PDF bytes or an SVG string (calls are serialised). */
+  function typstCompile(main, files, kind) {
+    const run = async () => {
+      const ts = await loadTypst();
+      const enc = new TextEncoder();
+      await ts.resetShadow();
+      for (const [name, content] of Object.entries(files)) {
+        await ts.mapShadow(`/${name}`, typeof content === "string" ? enc.encode(content) : content);
+      }
+      await ts.addSource("/main.typ", main);
+      if (kind === "png") {
+        // render the first page to a <canvas> (typst.ts SVG output cannot be drawn as an <img>)
+        const host = document.createElement("div");
+        host.style.cssText = "position:fixed;left:-20000px;top:0;width:2000px;pointer-events:none;opacity:0;";
+        document.body.appendChild(host);
+        try {
+          await ts.canvas(host, { mainFilePath: "/main.typ", pixelPerPt: 2.8, backgroundColor: "#ffffff" });
+          const cv = host.querySelector("canvas");
+          if (!cv) throw new Error("Typst rendered no page");
+          return await new Promise((res, rej) => cv.toBlob((b) => (b ? res(b) : rej(new Error("PNG encoding failed"))), "image/png"));
+        } finally {
+          host.remove();
+        }
+      }
+      const out = kind === "pdf" ? await ts.pdf({ mainFilePath: "/main.typ" }) : await ts.svg({ mainFilePath: "/main.typ" });
+      if (!out) throw new Error("Typst produced no output");
+      return out;
+    };
+    const p = _typstQueue.then(run, run);
+    _typstQueue = p.catch(() => {});
+    return p;
+  }
+  function bytesToB64(u8) {
+    let bin = "";
+    for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+
+  /** Browser build: PDF / infographic / Word / ZIP with the report compiled by typst.ts in this page. */
+  async function browserReport(fmt) {
+    if (_pendingReport || _browserBusy) { exportBadge.textContent = "A report is already being built…"; return; }
+    _browserBusy = true;
+    reportSel.disabled = true;
+    const t0 = performance.now();
+    try {
+      const req = collectReportRequest([fmt]);
+      exportBadge.textContent = "Preparing report data…";
+      const res = await pythonCall(Object.assign({}, req, { action: "typst_bundle" }));
+      const b = res.bundle;
+      const first = !window.$typst;
+      exportBadge.textContent = first ? "Loading the Typst compiler (first time only, ~10 MB)…" : "Typesetting…";
+      const files = (mode) => Object.assign({}, b.files, { "data.json": b.data[mode] });
+      let pdf = null, info = null;
+      if (fmt === "pdf" || fmt === "zip") {
+        pdf = await typstCompile(b.main, files("report"), "pdf");
+      }
+      if (fmt === "png_infographic" || fmt === "docx" || fmt === "zip") {
+        exportBadge.textContent = "Rendering the infographic…";
+        info = await typstCompile(b.main, files("infographic"), "png");
+      }
+      if (fmt === "pdf") {
+        downloadBlob(new Blob([pdf], { type: "application/pdf" }), `${b.stem}.pdf`);
+      } else if (fmt === "png_infographic") {
+        downloadBlob(info, `${b.stem}_infographic.png`);
+      } else {
+        // Word / ZIP: Python assembles them with the browser-rendered figures, PDF and infographic
+        exportBadge.textContent = "Rendering figures…";
+        const rasters = {};
+        if (req.canvas_svg) rasters.canvas = await blobToB64(await svgToPngBlob(req.canvas_svg, 1.5));
+        for (let i = 0; i < (req.objects || []).length; i++) {
+          const o = req.objects[i];
+          if (o.svg) rasters[`fig_${String(i).padStart(2, "0")}`] = await blobToB64(await svgToPngBlob(o.svg, 2));
+        }
+        const full = Object.assign({}, req, {
+          id: `rep_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          rasters,
+          client_infographic: info ? await blobToB64(info) : undefined,
+          client_pdf: pdf ? bytesToB64(pdf) : undefined,
+        });
+        _browserBusy = false;
+        requestReport([fmt], null, null, full);
+        return;
+      }
+      exportBadge.textContent = `${fmt === "pdf" ? "PDF" : "PNG"} ready (${((performance.now() - t0) / 1000).toFixed(1)}s)`;
+      setTimeout(() => { if (!_pendingReport) exportBadge.textContent = ""; }, 9000);
+    } catch (err) {
+      console.error(err);
+      exportBadge.textContent = "Export failed — see message";
+      showReportPanel("Export failed", String(err && err.message ? err.message : err), "error");
+    } finally {
+      _browserBusy = false;
+      if (!_pendingReport) reportSel.disabled = false;
+    }
+  }
+  let _browserBusy = false;
+
+  /** Browser build: one object as a vector PDF (typst.ts, page sized to the object). */
+  async function browserObjectPDF(node, opts = {}) {
+    try {
+      exportBadge.textContent = window.$typst ? "Typesetting object PDF…" : "Loading the Typst compiler (first time only)…";
+      const svg = buildSingleNodeSVG(node, opts);
+      const m = svg.match(/viewBox="([\d.\-]+)[ ,]+([\d.\-]+)[ ,]+([\d.]+)[ ,]+([\d.]+)"/);
+      const w = m ? parseFloat(m[3]) : 1200, h = m ? parseFloat(m[4]) : 800;
+      const main = `#set page(width: ${(w * 0.75).toFixed(2)}pt, height: ${(h * 0.75).toFixed(2)}pt, margin: 0pt)\n#image("object.svg", width: 100%)\n`;
+      const pdf = await typstCompile(main, { "object.svg": svg }, "pdf");
+      const safe = String(node.title || node.type).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 48);
+      downloadBlob(new Blob([pdf], { type: "application/pdf" }), `titra_${node.type}_${safe || "object"}.pdf`);
+      exportBadge.textContent = "Object PDF exported";
+    } catch (err) {
+      exportBadge.textContent = "PDF export failed";
+      showReportPanel("PDF export failed", String(err && err.message ? err.message : err), "error");
+    }
+    setTimeout(() => { exportBadge.textContent = ""; }, 4000);
+  }
+
   function onReportResult() {
     const res = model.get("report_result") || {};
+    if (res.id && _rpcWaiters[res.id]) {
+      const w = _rpcWaiters[res.id];
+      delete _rpcWaiters[res.id];
+      w(res);
+      return;
+    }
     if (!_pendingReport || res.id !== _pendingReport.id) return;
     clearTimeout(_pendingReport.timer);
     _pendingReport = null;
@@ -11106,7 +11281,7 @@ function render({ model, el: host }) {
       if (f.b64) downloadB64(f.b64, f.name, f.mime);
     }
     const kinds = (res.files || []).map((f) => f.name.split(".").pop().toUpperCase()).join(" + ");
-    exportBadge.textContent = `${kinds} ready (${res.elapsed_s}s) · saved in reports/`;
+    exportBadge.textContent = `${kinds} ready (${res.elapsed_s}s)${CAPS.wasm ? "" : " · saved in reports/"}`;
     const errs = Object.entries(res.errors || {});
     if (errs.length) {
       showReportPanel(
@@ -11168,13 +11343,6 @@ function render({ model, el: host }) {
       rd.onload = () => resolve(String(rd.result).split(",")[1] || "");
       rd.readAsDataURL(blob);
     });
-  }
-  function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
   async function exportCanvasPNG() {
     try {
