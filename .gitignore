@@ -1,0 +1,12 @@
+# Never publish patient / sample data or generated reports
+clinical_sample/
+reports/
+Claude outputs/
+*.pdf
+# Build outputs (rebuilt by build_web.py / GitHub Actions)
+web/
+public/
+# Local caches & backups
+__pycache__/
+__marimo__/
+*.bak

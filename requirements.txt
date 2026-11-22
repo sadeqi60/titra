@@ -1,0 +1,10 @@
+# Titra — desktop (marimo) requirements
+marimo>=0.25
+anywidget>=0.9
+traitlets>=5.9
+numpy
+pandas
+scipy
+# report export: PDF / PNG (Typst) and Word
+typst>=0.11
+python-docx>=1.1
