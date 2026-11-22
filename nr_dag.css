@@ -87,7 +87,7 @@
 
 .nr-brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   padding-right: 12px;
   border-right: 1.5px solid var(--nr-silver);
@@ -997,7 +997,7 @@
   min-width: 0;
 }
 .nr-brand {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
   overflow: hidden;
 }
@@ -1273,8 +1273,104 @@
 /* ══ First Appearance: Antigravity / Claude-Inspired Editorial Welcome Stage ══ */
 .nr-welcome-stage[hidden],
 .nr-progress-stage[hidden],
-.nr-welcome-err[hidden] {
+.nr-welcome-err[hidden],
+.nr-clear-tip[hidden],
+.nr-welcome-cleared-toast[hidden] {
   display: none !important;
+}
+
+/* ── Title-bar Clear button & warning tooltip ──────────────────────── */
+.nr-btn.nr-btn-clear {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--nr-crimson);
+  background: var(--nr-white);
+  border: 1.5px solid rgba(184, 29, 51, 0.42);
+  border-radius: 999px;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.nr-btn.nr-btn-clear:hover,
+.nr-btn.nr-btn-clear:focus-visible {
+  background: var(--nr-crimson);
+  border-color: var(--nr-crimson);
+  color: var(--nr-white);
+  box-shadow: 0 4px 12px -4px rgba(184, 29, 51, 0.55);
+  outline: none;
+}
+
+.nr-clear-x {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.nr-clear-tip {
+  position: absolute;
+  z-index: 90;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--nr-black);
+  color: var(--nr-white);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 2.5px solid var(--nr-crimson);
+  font-family: var(--nr-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 12px 28px -8px rgba(17, 19, 23, 0.36);
+  animation: nrTipFade 0.14s ease-out both;
+}
+
+.nr-clear-tip-icon {
+  color: #FF6B7F;
+  font-size: 15px;
+  line-height: 1;
+}
+
+@keyframes nrTipFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nr-welcome-cleared-toast {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--nr-white);
+  border: 1.5px solid rgba(184, 29, 51, 0.35);
+  color: var(--nr-black);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 10px 26px -10px rgba(17, 19, 23, 0.18);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.26s ease, transform 0.26s ease;
+  animation: nrWelcomeRise 0.24s ease-out both;
+}
+
+.nr-welcome-cleared-toast.nr-toast-fade {
+  opacity: 0;
+  transform: translate(-50%, -6px);
+}
+
+.nr-welcome-cleared-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nr-crimson);
 }
 
 .nr-studio.nr-welcome-mode.nr-drop-active::after {

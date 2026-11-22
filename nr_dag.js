@@ -3874,9 +3874,22 @@ function render({ model, el: host }) {
     ]
   );
 
+  const clearStudioBtn = el("button", {
+    class: "nr-btn nr-btn-clear",
+    type: "button",
+    title: "This click will clear the studio and unload the current case",
+    "aria-label": "Clear studio and return to welcome page",
+    html: '<span class="nr-clear-x">✕</span>&nbsp;Clear',
+    onclick: (ev) => {
+      ev.stopPropagation();
+      clearStudioToWelcome();
+    },
+  });
+
   const toolbar = el("div", { class: "nr-toolbar" }, [
     el("div", { class: "nr-brand" }, [
       el("div", { class: "nr-brand-title", title: "Titra — DBS programming studio" }, [titraIcon(), el("span", { class: "nr-brand-word", text: "Titra" })]),
+      clearStudioBtn,
       el("span", {
         class: "nr-brand-sub nr-brand-session",
         text: meta.file_name ? `${meta.device_name || "Percept"} · ${meta.file_name}` : "No file loaded",
@@ -9125,12 +9138,88 @@ function render({ model, el: host }) {
     welcomeCapsEl.appendChild(el("span", { class: "nr-welcome-cap", text: cap }));
   });
 
+  const welcomeClearedToastEl = el("div", { class: "nr-welcome-cleared-toast", hidden: "" }, [
+    el("span", { class: "nr-welcome-cleared-dot" }),
+    el("span", { text: "Studio cleared — ready for a new LFP JSON file" }),
+  ]);
+
+  const clearTipEl = el("div", { class: "nr-clear-tip", role: "tooltip", hidden: "" }, [
+    el("span", { class: "nr-clear-tip-icon", text: "⚠" }),
+    el("span", { text: "This click will clear the studio and current case" }),
+  ]);
+
+  let _clearedToastTimer = null;
+  function showClearTip() {
+    if (root.classList.contains("nr-welcome-mode")) return;
+    const rr = root.getBoundingClientRect();
+    const br = clearStudioBtn.getBoundingClientRect();
+    if (!br.width) return;
+    clearTipEl.removeAttribute("hidden");
+    const left = clamp(br.left - rr.left, 12, Math.max(12, rr.width - 360));
+    clearTipEl.style.left = `${Math.round(left)}px`;
+    clearTipEl.style.top = `${Math.round(br.bottom - rr.top + 8)}px`;
+  }
+  function hideClearTip() {
+    clearTipEl.setAttribute("hidden", "");
+  }
+  clearStudioBtn.addEventListener("mouseenter", showClearTip);
+  clearStudioBtn.addEventListener("focus", showClearTip);
+  clearStudioBtn.addEventListener("mouseleave", hideClearTip);
+  clearStudioBtn.addEventListener("blur", hideClearTip);
+
+  function clearStudioToWelcome() {
+    hideClearTip();
+    closeCtxMenu();
+    if (typeof closeReportPanel === "function") closeReportPanel();
+    _clearProgressTimers();
+    _progress.active = false;
+    _progress.completing = false;
+    progressStageEl.setAttribute("hidden", "");
+    progressStageEl.classList.remove("nr-progress-exit", "nr-progress-overlay", "nr-progress-fullscreen");
+    root.classList.remove("nr-loading-mode");
+
+    // Instantly clear client state and show Welcome page
+    state.payload = {};
+    state.focusNodeId = null;
+    focusContainer.innerHTML = "";
+    meta = {};
+    _caps = null;
+    _inputSel = null;
+    _inputLocalError = "";
+    _gtCacheKey = "";
+    _riskCacheKey = "";
+    _optCacheKey = "";
+    _gspCacheKey = "";
+    const bs = root.querySelector(".nr-brand-session");
+    if (bs) bs.textContent = "No file loaded";
+
+    _welcomeDismissed = false;
+    loadPreset((presetSel && presetSel.value) || model.get("preset") || "beta_ftg");
+    syncWelcomeVisibility();
+
+    // Brief non-intrusive cleared toast on the welcome screen
+    if (_clearedToastTimer) clearTimeout(_clearedToastTimer);
+    welcomeClearedToastEl.classList.remove("nr-toast-fade");
+    welcomeClearedToastEl.removeAttribute("hidden");
+    _clearedToastTimer = setTimeout(() => {
+      welcomeClearedToastEl.classList.add("nr-toast-fade");
+      _clearedToastTimer = setTimeout(() => {
+        welcomeClearedToastEl.setAttribute("hidden", "");
+        welcomeClearedToastEl.classList.remove("nr-toast-fade");
+      }, 280);
+    }, 2600);
+
+    // Sync clear to Python backend immediately
+    inputRequest("clear");
+  }
+
   const welcomeStageEl = el("div", { class: "nr-welcome-stage" }, [
     el("div", { class: "nr-welcome-bg" }, [
       el("div", { class: "nr-welcome-grid" }),
       el("div", { class: "nr-welcome-glow" }),
       buildWelcomeAmbientSVG(),
     ]),
+    welcomeClearedToastEl,
     el("button", {
       class: "nr-welcome-fs-btn",
       type: "button",
@@ -9193,6 +9282,7 @@ function render({ model, el: host }) {
 
   root.appendChild(welcomeStageEl);
   root.appendChild(progressStageEl);
+  root.appendChild(clearTipEl);
 
   function updateWelcomeError() {
     const msg = _inputLocalError || "";
@@ -9553,7 +9643,7 @@ function render({ model, el: host }) {
         title: "Add more files of the same structure to the loaded data (merged into every object; conflicting files are rejected)",
         onclick: (ev) => { stop(ev); inputAddPicker(); },
       }));
-      sub.appendChild(el("button", { class: "nr-pill", text: "✕ Clear", title: "Unload the file and start over", onclick: (ev) => { stop(ev); _inputSel = null; inputRequest("clear"); } }));
+      sub.appendChild(el("button", { class: "nr-pill", text: "✕ Clear", title: "This click will clear the studio and unload the current case", onclick: (ev) => { stop(ev); clearStudioToWelcome(); } }));
     }
     if (files.length) sub.appendChild(el("button", { class: "nr-pill", text: "⟳", title: "Rescan the data folder", onclick: (ev) => { stop(ev); inputRequest("scan"); } }));
     if (busy) sub.appendChild(el("span", { class: "nr-input-busy", text: _inputPending.action === "scan" ? "Scanning…" : _inputPending.action === "add" ? "Checking & merging…" : "Checking & loading…" }));
@@ -11964,6 +12054,7 @@ function render({ model, el: host }) {
 
   return () => {
     if (state.bandit.timer) clearInterval(state.bandit.timer);
+    if (_clearedToastTimer) clearTimeout(_clearedToastTimer);
     _clearProgressTimers();
     document.removeEventListener("fullscreenchange", onFullscreenChange);
     document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
