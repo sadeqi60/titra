@@ -638,7 +638,8 @@ def _ring_lead_fix(store: dict) -> None:
         out = []
         for cid in sel["contacts"]:
             h, _, c = str(cid).partition(":")
-            cid2 = f"{h}:{_SEG_RE.sub(r'\1', c)}" if h in ring else cid
+            _rc = _SEG_RE.sub(r"\1", c)
+            cid2 = f"{h}:{_rc}" if h in ring else cid
             if cid2 not in out:
                 out.append(cid2)
         order = {c: i for i, c in enumerate(_VALID_CONTACTS)}

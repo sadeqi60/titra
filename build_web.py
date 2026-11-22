@@ -47,6 +47,36 @@ def build() -> None:
         shutil.copytree(HERE / "public", OUT / "public", dirs_exist_ok=True)
     for junk in ("CLAUDE.md",):  # marimo's editor-assistant notes: not needed on the website
         (OUT / junk).unlink(missing_ok=True)
+    # 3. Replace marimo's default browser favicon with Titra's DBS-lead emblem
+    titra_favicon_svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">\n'
+        '  <rect x="1" y="1" width="30" height="30" rx="7" fill="#FFFFFF" stroke="#D4D8DF" stroke-width="1.4"/>\n'
+        '  <circle cx="16" cy="12.2" r="9.6" fill="none" stroke="#B81D33" stroke-width="1.35" opacity="0.34"/>\n'
+        '  <circle cx="16" cy="12.2" r="6.6" fill="none" stroke="#B81D33" stroke-width="1.65" opacity="0.72"/>\n'
+        '  <rect x="12.4" y="3.2" width="7.2" height="25.6" rx="3.6" fill="#1F242C"/>\n'
+        '  <rect x="11.6" y="22.0" width="8.8" height="2.9" rx="1.0" fill="#D4D8DF"/>\n'
+        '  <rect x="11.6" y="16.4" width="8.8" height="2.9" rx="1.0" fill="#D4D8DF"/>\n'
+        '  <rect x="11.6" y="10.8" width="8.8" height="2.9" rx="1.0" fill="#B81D33"/>\n'
+        '  <rect x="11.6" y="5.2" width="8.8" height="2.9" rx="1.0" fill="#D4D8DF"/>\n'
+        '</svg>\n'
+    )
+    (OUT / "favicon.svg").write_text(titra_favicon_svg, encoding="utf-8")
+    idx = OUT / "index.html"
+    if idx.exists():
+        html = idx.read_text(encoding="utf-8")
+        html = html.replace(
+            '<link rel="icon" href="./favicon.ico" />',
+            '<link rel="icon" type="image/svg+xml" href="./favicon.svg" />',
+        )
+        html = html.replace(
+            '<meta name="theme-color" content="#000000" />',
+            '<meta name="theme-color" content="#B81D33" />',
+        )
+        html = html.replace(
+            '<meta name="description" content="a marimo app" />',
+            '<meta name="description" content="Titra — DBS programming studio" />',
+        )
+        idx.write_text(html, encoding="utf-8")
     (OUT / ".nojekyll").write_text("")  # GitHub Pages: serve files/folders that start with "_"
     size = sum(p.stat().st_size for p in OUT.rglob("*") if p.is_file()) / 1e6
     print(f"\nBuilt {OUT} ({size:.1f} MB). Publish the CONTENTS of this folder (e.g. GitHub Pages).")

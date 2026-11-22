@@ -40,7 +40,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const NODE_CATALOG = {
   input:         { label: "LFP Input",                   badge: "INPUT",  w: 820, h: 600, desc: "Drag & drop / browse a JSON file · detect, verify & load LFP data" },
   lead:          { label: "DBS Lead Model",              badge: "LEAD",   w: 680, h: 890, desc: "Realistic directional SenSight lead" },
-  ftg_controller:{ label: "FTG Half-Band Controller",    badge: "FTG Δf", w: 680, h: 400, desc: "Control Δf around f_stim / 2 live" },
+  ftg_controller:{ label: "FTG Half-Band Controller",    badge: "FTG Δf", w: 680, h: 225, desc: "Control Δf around f_stim / 2 live" },
   lfp:           { label: "LFP Time-Domain",             badge: "LFP",    w: 720, h: 440, desc: "250 Hz LFP trace + mA staircase" },
   psd:           { label: "Power Spectral Density",      badge: "PSD",    w: 700, h: 460, desc: "Welch / Survey PSD · Beta & FTG" },
   spectrogram:   { label: "STFT Spectrogram",            badge: "STFT",   w: 720, h: 460, desc: "Time–frequency map · Beta & FTG" },
@@ -69,7 +69,7 @@ const NODE_CATALOG = {
   opt_chain:     { label: "Opt · Option Chain & Greeks", badge: "GREEKS", w: 820, h: 560, desc: "Strikes K · Call, Put, Δ, Γ, Vega & Θ/s table" },
   opt_smile:     { label: "Opt · Alpha ∂Π/∂a & IV Smile", badge: "SMILE", w: 760, h: 540, desc: "Fitted Π(a) Alpha curve (a*) & implied-vol smile IV(K)" },
   opt_selection: { label: "Opt · 5-Rule Selection & Log-OU", badge: "PICK", w: 820, h: 540, desc: "Portfolio/strategy/FTG/aDBS/Alpha picks & log-OU table" },
-  gsp_graph:     { label: "GSP · Amplitude-State Graph & Fiedler", badge: "GRAPH", w: 920, h: 640, desc: "NeuroWeave 5.0 amplitude graph G(V,E,W) · Fiedler u₂ & live σ" },
+  gsp_graph:     { label: "GSP · Amplitude-State Graph & Fiedler", badge: "GRAPH", w: 920, h: 640, desc: "Amplitude-state graph G(V,E,W) · Fiedler u₂ & live σ" },
   gsp_matrix:    { label: "GSP · Graph Operator Matrix Explorer",  badge: "MAT",   w: 720, h: 540, desc: "Affinity W, Laplacian L, Normalized L_sym & distance d²" },
   gsp_gft:       { label: "GSP · Graph Fourier Modes & Log-PSD",   badge: "GFT",   w: 780, h: 520, desc: "L_sym eigenmodes E_k(β/FTG), μ_k & node-pooled Welch PSD" },
   gsp_gtv:       { label: "GSP · GTV(f), LGFE(f), GSE(f) & KPIs",  badge: "GSP",   w: 840, h: 540, desc: "6-KPI GSP biomarker strip & frequency profiles" },
@@ -798,8 +798,43 @@ function titraIcon(size = 30) {
   return svg;
 }
 
+const TITRA_FAVICON_SVG =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
+  `<rect x="1" y="1" width="30" height="30" rx="7" fill="#FFFFFF" stroke="#D4D8DF" stroke-width="1.4"/>` +
+  `<circle cx="16" cy="12.2" r="9.6" fill="none" stroke="#B81D33" stroke-width="1.35" opacity="0.34"/>` +
+  `<circle cx="16" cy="12.2" r="6.6" fill="none" stroke="#B81D33" stroke-width="1.65" opacity="0.72"/>` +
+  `<rect x="12.4" y="3.2" width="7.2" height="25.6" rx="3.6" fill="#1F242C"/>` +
+  `<rect x="11.6" y="22.0" width="8.8" height="2.9" rx="1.0" fill="#D4D8DF"/>` +
+  `<rect x="11.6" y="16.4" width="8.8" height="2.9" rx="1.0" fill="#D4D8DF"/>` +
+  `<rect x="11.6" y="10.8" width="8.8" height="2.9" rx="1.0" fill="#B81D33"/>` +
+  `<rect x="11.6" y="5.2" width="8.8" height="2.9" rx="1.0" fill="#D4D8DF"/>` +
+  `</svg>`;
+
+/** Replace the browser tab / URL bar favicon (e.g. default marimo icon) with Titra's DBS-lead emblem. */
+function setTitraFavicon() {
+  try {
+    const docs = [document];
+    try {
+      if (window.parent && window.parent !== window && window.parent.document) {
+        docs.push(window.parent.document);
+      }
+    } catch (_) {}
+    const href = `data:image/svg+xml,${encodeURIComponent(TITRA_FAVICON_SVG)}`;
+    for (const doc of docs) {
+      if (!doc || !doc.head) continue;
+      doc.querySelectorAll('link[rel*="icon"]').forEach((n) => n.remove());
+      const link = doc.createElement("link");
+      link.rel = "icon";
+      link.type = "image/svg+xml";
+      link.href = href;
+      doc.head.appendChild(link);
+    }
+  } catch (_) {}
+}
+
 function render({ model, el: host }) {
   host.innerHTML = "";
+  setTitraFavicon();
 
   // ── Internal Reactive State ─────────────────────────────────────────
   const state = {
@@ -2606,7 +2641,7 @@ function render({ model, el: host }) {
   const NODE_SIZE_OVERRIDES = {
     input: { w: 820, h: 600 },
     lead: { w: 680, h: 860 },
-    ftg_controller: { w: 760, h: 440 },
+    ftg_controller: { w: 760, h: 225 },
     montage: { w: 720, h: 620 },
     therapy: { w: 860, h: 430 },
     gt_arms: { w: 1000, h: 640 },
@@ -2621,7 +2656,7 @@ function render({ model, el: host }) {
     gsp_matrix: { w: 760, h: 600 },
     gsp_phase: { w: 820, h: 540 },
   };
-  const NODE_MIN_SIZE = { lead: { w: 540, h: 640 } };
+  const NODE_MIN_SIZE = { lead: { w: 540, h: 640 }, ftg_controller: { w: 520, h: 215 } };
 
   /** Default size of a newly inserted object (fits its content; never shrunk to the screen). */
   function rawNodeSize(type) {
@@ -2681,7 +2716,7 @@ function render({ model, el: host }) {
       n.x = Math.round(STAGE_MARGIN + (n.x - minX) * sx);
       n.y = Math.round(STAGE_MARGIN + (n.y - minY) * sy);
       n.w = Math.round(n.w * sx);
-      n.h = Math.round(n.h * sy);
+      n.h = n.type === "ftg_controller" ? Math.min(Math.round(n.h * sy), 276) : Math.round(n.h * sy);
     }
   }
 
@@ -3117,7 +3152,7 @@ function render({ model, el: host }) {
         x: 36,
         y: 776,
         w: 520,
-        h: 310,
+        h: 225,
         collapsed: false,
       });
       state.edges.push(
@@ -3252,7 +3287,7 @@ function render({ model, el: host }) {
         { id: "e4", source: "node_spec_2", target: "node_tr_1", label: "Chronic Log" }
       );
     } else if (presetName === "gt_arms_arena") {
-      const nFtg = { id: "gt_ftg_1", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "gt_ftg_1", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nArms = { id: "gt_arms_1", type: "gt_arms", title: `GT · Arms & Utility Arena (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 36, w: 700, h: 510, collapsed: false };
       const nLfp = { id: "gt_lfp_1", type: "lfp", title: `LFP Source · ${hemi} ${pair}`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 36, w: 540, h: 320, collapsed: false };
       const nPsd = { id: "gt_psd_1", type: "psd", title: `Welch PSD · Δβ & FTG Biomarkers`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 392, w: 540, h: 350, collapsed: false };
@@ -3266,7 +3301,7 @@ function render({ model, el: host }) {
         { id: "e4", source: "lead_main", target: "gt_bf_1", label: "Amplitude Sweep", sourcePort: "right-2", targetPort: "left-1" }
       );
     } else if (presetName === "gt_nash_stackelberg") {
-      const nFtg = { id: "gt_ftg_2", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "gt_ftg_2", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nArms = { id: "gt_arms_2", type: "gt_arms", title: `GT · Arms & Utility Arena (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 120, w: 700, h: 510, collapsed: false };
       const nNbs = { id: "gt_nbs_1", type: "gt_nash", title: `GT · Nash Bargaining & Pareto`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 20, w: 560, h: 420, collapsed: false };
       const nMin = { id: "gt_min_1", type: "gt_minimax", title: `GT · Minimax & Zero-Sum Nash`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 470, w: 560, h: 420, collapsed: false, mode: "matrix" };
@@ -3284,7 +3319,7 @@ function render({ model, el: host }) {
         { id: "e7", source: "gt_stk_1", target: "gt_con_1", label: "Stackelberg", sourcePort: "bottom-1", targetPort: "top-1" }
       );
     } else if (presetName === "gt_bandit_studio") {
-      const nFtg = { id: "gt_ftg_3", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "gt_ftg_3", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nArms = { id: "gt_arms_3", type: "gt_arms", title: `GT · Arms & Utility Arena (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 36, w: 700, h: 510, collapsed: false };
       const nBan = { id: "gt_ban_1", type: "gt_bandit", title: `GT · Live Multi-Armed Bandit`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 36, w: 700, h: 490, collapsed: false };
       const nStk = { id: "gt_stk_2", type: "gt_stackelberg", title: `GT · Stackelberg Follower Curves`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 580, w: 700, h: 390, collapsed: false, mode: "follower" };
@@ -3299,7 +3334,7 @@ function render({ model, el: host }) {
         { id: "e5", source: "gt_stk_2", target: "gt_con_2", label: "Robust a*", sourcePort: "right-1", targetPort: "left-1" }
       );
     } else if (presetName === "gt_complete") {
-      const nFtg = { id: "gt_ftg_c", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "gt_ftg_c", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nArms = { id: "gt_arms_c", type: "gt_arms", title: `GT · Arms & Utility Arena (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 200, w: 700, h: 510, collapsed: false };
       const nNbs = { id: "gt_nbs_c", type: "gt_nash", title: `GT · Nash Bargaining & Pareto`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 20, w: 560, h: 420, collapsed: false };
       const nMin = { id: "gt_min_c", type: "gt_minimax", title: `GT · Minimax & Zero-Sum Nash`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 470, w: 560, h: 420, collapsed: false, mode: "matrix" };
@@ -3320,7 +3355,7 @@ function render({ model, el: host }) {
         { id: "e9", source: "gt_ban_c", target: "gt_con_c", label: "Bandit", sourcePort: "right-1", targetPort: "left-2" }
       );
     } else if (presetName === "risk_arena") {
-      const nFtg = { id: "rk_ftg_1", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "rk_ftg_1", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nMap = { id: "rk_map_1", type: "risk_map", title: `Risk · Tail Risk Arena & VaR Map (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 36, w: 700, h: 520, collapsed: false };
       const nEnv = { id: "rk_env_1", type: "risk_envelope", title: `Risk · Envelope & Red-Line Breaches`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 36, w: 600, h: 400, collapsed: false };
       const nSel = { id: "rk_sel_1", type: "risk_selection", title: `Risk · 5-Rule Selection & Backtest`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 472, w: 600, h: 420, collapsed: false, mode: "selection" };
@@ -3350,7 +3385,7 @@ function render({ model, el: host }) {
         { id: "e6", source: "rk_br_2", target: "rk_sel_2", label: "P(breach) ≤ ε", sourcePort: "bottom-1", targetPort: "top-1" }
       );
     } else if (presetName === "risk_complete") {
-      const nFtg = { id: "rk_ftg_c", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "rk_ftg_c", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nEnv = { id: "rk_env_c", type: "risk_envelope", title: `Risk · Envelope & Red-Line Breaches`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 20, w: 700, h: 380, collapsed: false };
       const nMap = { id: "rk_map_c", type: "risk_map", title: `Risk · Tail Risk Arena & VaR Map (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 432, w: 700, h: 520, collapsed: false };
       const nTail = { id: "rk_tail_c", type: "risk_tail", title: `Risk · Tail Survival & EVT-VaR`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 20, w: 560, h: 420, collapsed: false, mode: "survival" };
@@ -3370,7 +3405,7 @@ function render({ model, el: host }) {
         { id: "e8", source: "rk_map_c", target: "rk_sel_c", label: "CVaR & Score", sourcePort: "bottom-2", targetPort: "bottom-0" }
       );
     } else if (presetName === "opt_desk") {
-      const nFtg = { id: "op_ftg_1", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "op_ftg_1", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nArena = { id: "op_arena_1", type: "opt_arena", title: `Opt · Premium Map & Strategy Arena (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 36, w: 700, h: 520, collapsed: false };
       const nPay = { id: "op_pay_1", type: "opt_payoff", title: `Opt · Payoff, Density & Calibration`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 36, w: 580, h: 420, collapsed: false, mode: "payoff" };
       const nLat = { id: "op_lat_1", type: "opt_lattice", title: `Opt · American Lattice & aDBS Trigger`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 590, w: 700, h: 380, collapsed: false };
@@ -3400,7 +3435,7 @@ function render({ model, el: host }) {
         { id: "e6", source: "op_ch_2", target: "op_sel_2", label: "Chain Picks", sourcePort: "right-1", targetPort: "left-1" }
       );
     } else if (presetName === "opt_complete") {
-      const nFtg = { id: "op_ftg_c", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "op_ftg_c", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nArena = { id: "op_arena_c", type: "opt_arena", title: `Opt · Premium Map & Strategy Arena (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 20, w: 700, h: 520, collapsed: false };
       const nPay = { id: "op_pay_c", type: "opt_payoff", title: `Opt · Payoff, Density & Calibration`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 572, w: 700, h: 380, collapsed: false, mode: "payoff" };
       const nLat = { id: "op_lat_c", type: "opt_lattice", title: `Opt · American Lattice & aDBS Trigger`, hemisphere: hemi, pair, recordingId: rid, x: 1420, y: 20, w: 600, h: 420, collapsed: false };
@@ -3419,7 +3454,7 @@ function render({ model, el: host }) {
         { id: "e7", source: "op_ch_c", target: "op_sel_c", label: "5-Rule Board", sourcePort: "right-1", targetPort: "left-1" }
       );
     } else if (presetName === "gsp_pipeline") {
-      const nFtg = { id: "gsp_ftg_1", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "gsp_ftg_1", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nGraph = { id: "gsp_gr_1", type: "gsp_graph", title: `GSP · Amplitude-State Graph & Fiedler (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 36, w: 720, h: 520, collapsed: false };
       const nGft = { id: "gsp_gft_1", type: "gsp_gft", title: `GSP · Graph Fourier Modes & Log-PSD`, hemisphere: hemi, pair, recordingId: rid, x: 1440, y: 36, w: 600, h: 440, collapsed: false, mode: "gft" };
       const nLfp = { id: "gsp_lfp_1", type: "lfp", title: `LFP Stream & Amplitude Steps · ${hemi} ${pair}`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 590, w: 720, h: 340, collapsed: false };
@@ -3448,7 +3483,7 @@ function render({ model, el: host }) {
         { id: "e5", source: "gsp_gr_2", target: "gsp_sw_2", label: "Contact Rank", sourcePort: "right-2", targetPort: "left-0" }
       );
     } else if (presetName === "gsp_complete") {
-      const nFtg = { id: "gsp_ftg_c", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 310, collapsed: false };
+      const nFtg = { id: "gsp_ftg_c", type: "ftg_controller", title: `FTG Half-Band Controller (Δf)`, hemisphere: hemi, pair, recordingId: rid, x: 36, y: 776, w: 520, h: 225, collapsed: false };
       const nGraph = { id: "gsp_gr_c", type: "gsp_graph", title: `GSP · Amplitude-State Graph & Fiedler (${hemi})`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 20, w: 720, h: 520, collapsed: false };
       const nPh = { id: "gsp_ph_c", type: "gsp_phase", title: `GSP · Phase Clock & Takens Delay`, hemisphere: hemi, pair, recordingId: rid, x: 640, y: 572, w: 720, h: 400, collapsed: false, mode: "clock" };
       const nMat = { id: "gsp_mat_c", type: "gsp_matrix", title: `GSP · Graph Operator Matrix Explorer`, hemisphere: hemi, pair, recordingId: rid, x: 1440, y: 20, w: 580, h: 450, collapsed: false, mode: "W" };
@@ -3725,7 +3760,7 @@ function render({ model, el: host }) {
       el("option", { value: "opt_complete", text: "Opt Preset: Complete Option-Pricing DAG" }),
       el("option", { value: "gsp_pipeline", text: "GSP Preset: Amplitude Graph, GFT & GTV" }),
       el("option", { value: "gsp_operators", text: "GSP Preset: Graph Operators, σ-Sweep & Phase" }),
-      el("option", { value: "gsp_complete", text: "GSP Preset: Complete NeuroWeave GSP DAG" }),
+      el("option", { value: "gsp_complete", text: "GSP Preset: Complete Graph Signal Processing DAG" }),
       el("option", { value: "minimal_lead", text: "Preset: Minimal Lead Only" }),
     ]
   );
@@ -4055,7 +4090,7 @@ function render({ model, el: host }) {
         { label: "Opt · Option Chain & Greeks", tag: "GREEKS", fn: () => addNode("opt_chain", base) },
         { label: "Opt · Alpha ∂Π/∂a & IV Smile", tag: "SMILE", fn: () => addNode("opt_smile", base) },
         { label: "Opt · 5-Rule Selection & Log-OU", tag: "PICK", fn: () => addNode("opt_selection", base) },
-        { sec: "NeuroWeave 5.0 GSP Analysis" },
+        { sec: "Graph Signal Processing (GSP)" },
         { label: "GSP · Amplitude-State Graph & Fiedler", tag: "GRAPH", fn: () => addNode("gsp_graph", base) },
         { label: "GSP · Graph Operator Matrix Explorer", tag: "MAT", fn: () => addNode("gsp_matrix", base) },
         { label: "GSP · Graph Fourier Modes & Log-PSD", tag: "GFT", fn: () => addNode("gsp_gft", base) },
@@ -4097,7 +4132,7 @@ function render({ model, el: host }) {
         { label: "Opt · Option Chain & Greeks", tag: "GREEKS", fn: () => addNode("opt_chain", base) },
         { label: "Opt · Alpha ∂Π/∂a & IV Smile", tag: "SMILE", fn: () => addNode("opt_smile", base) },
         { label: "Opt · 5-Rule Selection & Log-OU", tag: "PICK", fn: () => addNode("opt_selection", base) },
-        { sec: "NeuroWeave 5.0 GSP Analysis" },
+        { sec: "Graph Signal Processing (GSP)" },
         { label: "GSP · Amplitude-State Graph & Fiedler", tag: "GRAPH", fn: () => addNode("gsp_graph", base) },
         { label: "GSP · Graph Operator Matrix Explorer", tag: "MAT", fn: () => addNode("gsp_matrix", base) },
         { label: "GSP · Graph Fourier Modes & Log-PSD", tag: "GFT", fn: () => addNode("gsp_gft", base) },
@@ -4199,7 +4234,7 @@ function render({ model, el: host }) {
         { label: "Branch → Opt Chain & Greeks", tag: "GREEKS", fn: () => addNode("opt_chain", base) },
         { label: "Branch → Opt Alpha & IV Smile", tag: "SMILE", fn: () => addNode("opt_smile", base) },
         { label: "Branch → Opt 5-Rule Selection", tag: "PICK", fn: () => addNode("opt_selection", base) },
-        { sec: "Branch NeuroWeave 5.0 GSP Objects" },
+        { sec: "Branch Graph Signal Processing Objects" },
         { label: "Branch → GSP Amplitude Graph", tag: "GRAPH", fn: () => addNode("gsp_graph", base) },
         { label: "Branch → GSP Matrix Explorer", tag: "MAT", fn: () => addNode("gsp_matrix", base) },
         { label: "Branch → GSP Fourier Modes", tag: "GFT", fn: () => addNode("gsp_gft", base) },
@@ -4274,7 +4309,7 @@ function render({ model, el: host }) {
         { label: "Opt · Option Chain & Greeks", tag: "GREEKS", fn: () => addNode("opt_chain", base) },
         { label: "Opt · Alpha ∂Π/∂a & IV Smile", tag: "SMILE", fn: () => addNode("opt_smile", base) },
         { label: "Opt · 5-Rule Selection & Log-OU", tag: "PICK", fn: () => addNode("opt_selection", base) },
-        { sec: "NeuroWeave 5.0 GSP Analysis" },
+        { sec: "Graph Signal Processing (GSP)" },
         { label: "GSP · Amplitude-State Graph & Fiedler", tag: "GRAPH", fn: () => addNode("gsp_graph", base) },
         { label: "GSP · Graph Operator Matrix Explorer", tag: "MAT", fn: () => addNode("gsp_matrix", base) },
         { label: "GSP · Graph Fourier Modes & Log-PSD", tag: "GFT", fn: () => addNode("gsp_gft", base) },
@@ -5816,15 +5851,15 @@ function render({ model, el: host }) {
     return svg;
   }
 
-  /** 0. FTG Half-Band Controller Object (Interactive Band Architecture Diagram) */
+  /** 0. FTG Half-Band Controller Object (Compact Interactive Band Architecture Strip) */
   function buildFTGControllerSVG(node, width, height) {
     const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, width, height });
     const ftg = getFtgBand(state.selection.stim_rate_hz);
     const bw = state.selection.ftg_half_bw_hz || 4.0;
     const fMax = 120;
-    const pad = { l: 38, r: 24, t: 36, b: 44 };
+    const pad = { l: 34, r: 22, t: 18, b: 33 };
     const pw = Math.max(120, width - pad.l - pad.r);
-    const ph = Math.max(54, height - pad.t - pad.b);
+    const ph = Math.max(20, height - pad.t - pad.b);
     const sx = (f) => pad.l + (clamp(f, 0, fMax) / fMax) * pw;
 
     svg.appendChild(svgEl("rect", { x: pad.l, y: pad.t, width: pw, height: ph, fill: C.white, stroke: C.silver }));
@@ -5832,34 +5867,34 @@ function render({ model, el: host }) {
     // Beta Band (13–30 Hz)
     const bx0 = sx(13), bx1 = sx(30);
     svg.appendChild(svgEl("rect", { x: bx0, y: pad.t, width: bx1 - bx0, height: ph, fill: C.silverSoft }));
-    svg.appendChild(svgEl("line", { x1: bx0, y1: pad.t, x2: bx1, y2: pad.t, stroke: C.black, "stroke-width": 4 }));
-    svg.appendChild(svgEl("text", { x: (bx0 + bx1) / 2, y: pad.t + ph * 0.54, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: C.black, text: "β" }));
-    svg.appendChild(svgEl("text", { x: (bx0 + bx1) / 2, y: pad.t - 10, "text-anchor": "middle", "font-size": 14, "font-weight": 600, fill: C.black, text: "13–30" }));
+    svg.appendChild(svgEl("line", { x1: bx0, y1: pad.t, x2: bx1, y2: pad.t, stroke: C.black, "stroke-width": 3.2 }));
+    svg.appendChild(svgEl("text", { x: (bx0 + bx1) / 2, y: pad.t + ph / 2, "text-anchor": "middle", "dominant-baseline": "central", "font-size": 13, "font-weight": 700, fill: C.black, text: "β" }));
+    svg.appendChild(svgEl("text", { x: (bx0 + bx1) / 2, y: pad.t - 5, "text-anchor": "middle", "font-size": 12.5, "font-weight": 600, fill: C.black, text: "13–30" }));
 
     // Neighbor normalization flanks around FTG
     const nL0 = sx(Math.max(32, ftg.lo - 4.5)), nL1 = sx(Math.max(32, ftg.lo - 1.0));
     const nR0 = sx(Math.min(118, ftg.hi + 1.0)), nR1 = sx(Math.min(118, ftg.hi + 4.5));
-    svg.appendChild(svgEl("rect", { x: nL0, y: pad.t + ph * 0.25, width: Math.max(2, nL1 - nL0), height: ph * 0.75, fill: C.silver, opacity: 0.7 }));
-    svg.appendChild(svgEl("rect", { x: nR0, y: pad.t + ph * 0.25, width: Math.max(2, nR1 - nR0), height: ph * 0.75, fill: C.silver, opacity: 0.7 }));
+    svg.appendChild(svgEl("rect", { x: nL0, y: pad.t + ph * 0.22, width: Math.max(2, nL1 - nL0), height: ph * 0.78, fill: C.silver, opacity: 0.7 }));
+    svg.appendChild(svgEl("rect", { x: nR0, y: pad.t + ph * 0.22, width: Math.max(2, nR1 - nR0), height: ph * 0.78, fill: C.silver, opacity: 0.7 }));
 
     // Dynamic FTG Band (f_stim/2 ± Δf) in Bold Crimson
     const fx0 = sx(ftg.lo), fx1 = sx(ftg.hi), fxc = sx(ftg.center);
-    svg.appendChild(svgEl("rect", { x: fx0, y: pad.t, width: Math.max(6, fx1 - fx0), height: ph, fill: C.crimsonTint, stroke: C.crimson, "stroke-width": 1.6 }));
-    svg.appendChild(svgEl("line", { x1: fx0, y1: pad.t, x2: fx1, y2: pad.t, stroke: C.crimson, "stroke-width": 4.2 }));
-    svg.appendChild(svgEl("line", { x1: fxc, y1: pad.t, x2: fxc, y2: pad.t + ph, stroke: C.crimson, "stroke-width": 2.0, "stroke-dasharray": "5 3" }));
-    svg.appendChild(svgEl("text", { x: fxc, y: pad.t - 10, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: C.crimson, text: `${ftg.center} ± ${bw.toFixed(1)} Hz` }));
-    svg.appendChild(svgEl("text", { x: fxc, y: pad.t + ph * 0.56, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: C.crimson, text: "FTG" }));
+    svg.appendChild(svgEl("rect", { x: fx0, y: pad.t, width: Math.max(6, fx1 - fx0), height: ph, fill: C.crimsonTint, stroke: C.crimson, "stroke-width": 1.5 }));
+    svg.appendChild(svgEl("line", { x1: fx0, y1: pad.t, x2: fx1, y2: pad.t, stroke: C.crimson, "stroke-width": 3.4 }));
+    svg.appendChild(svgEl("line", { x1: fxc, y1: pad.t, x2: fxc, y2: pad.t + ph, stroke: C.crimson, "stroke-width": 1.8, "stroke-dasharray": "4 2.5" }));
+    svg.appendChild(svgEl("text", { x: fxc, y: pad.t - 5, "text-anchor": "middle", "font-size": 12.5, "font-weight": 700, fill: C.crimson, text: `${ftg.center} ± ${bw.toFixed(1)} Hz` }));
+    svg.appendChild(svgEl("text", { x: fxc, y: pad.t + ph / 2, "text-anchor": "middle", "dominant-baseline": "central", "font-size": 13, "font-weight": 700, fill: C.crimson, text: "FTG" }));
 
     // Available f_stim/2 markers
     for (const sr of getPayload().config?.stim_rates_available || []) {
       const half = sr / 2;
-      svg.appendChild(svgEl("circle", { cx: sx(half), cy: pad.t + ph, r: 4, fill: Math.abs(half - ftg.center) < 0.2 ? C.crimson : C.gray }));
+      svg.appendChild(svgEl("circle", { cx: sx(half), cy: pad.t + ph, r: 3.4, fill: Math.abs(half - ftg.center) < 0.2 ? C.crimson : C.gray }));
     }
 
     for (let f = 0; f <= fMax; f += 20) {
-      svg.appendChild(svgEl("text", { x: sx(f), y: pad.t + ph + 20, "text-anchor": "middle", "font-size": 14, fill: C.grayDark, text: `${f}` }));
+      svg.appendChild(svgEl("text", { x: sx(f), y: pad.t + ph + 14, "text-anchor": "middle", "font-size": 12.5, fill: C.grayDark, text: `${f}` }));
     }
-    svg.appendChild(svgEl("text", { x: pad.l + pw / 2, y: height - 5, "text-anchor": "middle", "font-size": 14, "font-weight": 600, fill: C.black, text: `Frequency (Hz) · Active FTG [${fmtNum(ftg.lo, 1)}, ${fmtNum(ftg.hi, 1)}] Hz` }));
+    svg.appendChild(svgEl("text", { x: pad.l + pw / 2, y: pad.t + ph + 29, "text-anchor": "middle", "font-size": 12.5, "font-weight": 600, fill: C.black, text: `Frequency (Hz) · Active FTG [${fmtNum(ftg.lo, 1)}, ${fmtNum(ftg.hi, 1)}] Hz` }));
     return svg;
   }
 
@@ -8800,8 +8835,10 @@ function render({ model, el: host }) {
   /** Body height available below the header / formula strip / settings row(s). */
   function bodyHeightFor(node, hasSub, hasForm) {
     const two = node.type === "gt_arms" || node.type === "risk_map" || node.type === "opt_arena" || node.type === "gsp_graph";
-    const off = CHROME.header + CHROME.pad + (hasForm ? CHROME.form : 0) + (two ? CHROME.sub + CHROME.sliders : hasSub ? CHROME.sub : 0);
-    return Math.max(150, node.h - off);
+    const subOff = two ? CHROME.sub + CHROME.sliders : hasSub ? (node.type === "ftg_controller" ? CHROME.sliders : CHROME.sub) : 0;
+    const off = CHROME.header + CHROME.pad + (hasForm ? CHROME.form : 0) + subOff;
+    const minH = node.type === "ftg_controller" ? 86 : 150;
+    return Math.max(minH, node.h - off);
   }
 
   function notApplicableSVG(node, w, h, why) {
@@ -8949,6 +8986,375 @@ function render({ model, el: host }) {
     return el("div", { text: "Unknown object" });
   }
 
+  // ── Welcome Hero Stage (First Appearance) & Input Progress Bar ──────
+  let _welcomeDismissed = hasData();
+  const _progress = {
+    active: false,
+    completing: false,
+    pct: 0,
+    phase: 0,
+    startAt: 0,
+    driverTimer: null,
+    finishTimer: null,
+    hideTimer: null,
+  };
+
+  function _clearProgressTimers() {
+    if (_progress.driverTimer) { clearInterval(_progress.driverTimer); _progress.driverTimer = null; }
+    if (_progress.finishTimer) { clearTimeout(_progress.finishTimer); _progress.finishTimer = null; }
+    if (_progress.hideTimer) { clearTimeout(_progress.hideTimer); _progress.hideTimer = null; }
+  }
+
+  // Build subtle ambient harmonic waveform SVG behind the welcome hero
+  function buildWelcomeAmbientSVG() {
+    const svg = svgEl("svg", { class: "nr-welcome-waves", viewBox: "0 0 1440 520", preserveAspectRatio: "none", "aria-hidden": "true" });
+    const waves = [
+      { y: 210, amp: 34, freq: 2.2, phase: 0.4, stroke: C.crimson, op: 0.10, w: 1.6 },
+      { y: 248, amp: 22, freq: 3.6, phase: 1.5, stroke: C.black, op: 0.06, w: 1.2 },
+      { y: 288, amp: 42, freq: 1.6, phase: 2.4, stroke: C.crimson, op: 0.065, w: 1.2 },
+      { y: 332, amp: 16, freq: 4.8, phase: 0.9, stroke: C.grayDark, op: 0.05, w: 1.0 },
+    ];
+    for (const wv of waves) {
+      let d = "";
+      for (let x = 0; x <= 1440; x += 24) {
+        const t = x / 1440;
+        const env = Math.sin(t * Math.PI);
+        const y = wv.y + Math.sin(t * Math.PI * 2 * wv.freq + wv.phase) * wv.amp * (0.45 + 0.55 * env);
+        d += (x === 0 ? `M ${x} ${y.toFixed(1)}` : ` L ${x} ${y.toFixed(1)}`);
+      }
+      svg.appendChild(svgEl("path", { d, fill: "none", stroke: wv.stroke, "stroke-width": wv.w, opacity: wv.op }));
+    }
+    return svg;
+  }
+
+  function buildUploadGlyphSVG(size = 24) {
+    const s = svgEl("svg", { viewBox: "0 0 24 24", width: size, height: size, fill: "none", "aria-hidden": "true" });
+    s.appendChild(svgEl("path", { d: "M12 16V4m0 0l-4.5 4.5M12 4l4.5 4.5", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    s.appendChild(svgEl("path", { d: "M4 16.5v1.25A2.25 2.25 0 006.25 20h11.5A2.25 2.25 0 0020 17.75V16.5", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    return s;
+  }
+
+  const welcomeDropTitleEl = el("div", { class: "nr-welcome-drop-title", text: "Drop an LFP JSON file here, or click to browse" });
+  const welcomeErrTextEl = el("span", { class: "nr-welcome-err-text" });
+  const welcomeErrEl = el("div", { class: "nr-welcome-err", hidden: "" }, [
+    el("span", { class: "nr-welcome-err-icon", text: "✕" }),
+    welcomeErrTextEl,
+    el("button", {
+      class: "nr-welcome-err-close",
+      type: "button",
+      title: "Dismiss",
+      text: "✕",
+      onclick: (ev) => {
+        ev.stopPropagation();
+        _inputLocalError = "";
+        updateWelcomeError();
+      },
+    }),
+  ]);
+  const welcomeFolderWrap = el("div", { class: "nr-welcome-folder-wrap" });
+
+  const welcomeBrowseBtn = el("button", {
+    class: "nr-welcome-browse-btn",
+    type: "button",
+    title: "Choose one or more LFP JSON files",
+    onclick: (ev) => { ev.stopPropagation(); inputUpload(); },
+  }, [
+    buildUploadGlyphSVG(16),
+    el("span", { text: "Browse JSON" }),
+  ]);
+
+  const welcomeDropZone = el("div", {
+    class: "nr-welcome-dropzone",
+    role: "button",
+    tabindex: "0",
+    "aria-label": "Drop an LFP JSON file or click to browse",
+    onclick: (ev) => { ev.stopPropagation(); inputUpload(); },
+    onkeydown: (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); inputUpload(); }
+    },
+  }, [
+    el("div", { class: "nr-welcome-drop-icon" }, [buildUploadGlyphSVG(26)]),
+    welcomeDropTitleEl,
+    el("div", { class: "nr-welcome-drop-sub", text: "Medtronic Percept™ session reports & amplitude-titration exports · Drop multiple files to merge" }),
+  ]);
+
+  const welcomeInputBox = el("div", { class: "nr-welcome-input-box" }, [
+    el("div", { class: "nr-welcome-box-head" }, [
+      el("div", { class: "nr-welcome-box-ident" }, [
+        el("span", { class: "nr-welcome-obj-badge", text: "INPUT" }),
+        el("span", { class: "nr-welcome-obj-name", text: "LFP Input Object" }),
+      ]),
+      el("span", { class: "nr-welcome-privacy" }, [
+        el("span", { class: "nr-welcome-live-dot" }),
+        el("span", { text: "Local & private" }),
+      ]),
+    ]),
+    welcomeDropZone,
+    welcomeErrEl,
+    el("div", { class: "nr-welcome-box-foot" }, [
+      el("div", { class: "nr-welcome-foot-left" }, [
+        el("span", { class: "nr-welcome-chip nr-welcome-chip-active" }, [
+          el("span", { class: "nr-welcome-chip-dot" }),
+          el("span", { text: "LFP · JSON" }),
+        ]),
+        el("span", { class: "nr-welcome-chip nr-welcome-chip-muted", title: "Planned modality" }, [
+          el("span", { text: "MRI" }),
+          el("span", { class: "nr-welcome-chip-tag", text: "soon" }),
+        ]),
+        el("span", { class: "nr-welcome-chip nr-welcome-chip-muted", title: "Planned modality" }, [
+          el("span", { text: "CT" }),
+          el("span", { class: "nr-welcome-chip-tag", text: "soon" }),
+        ]),
+        welcomeFolderWrap,
+      ]),
+      el("div", { class: "nr-welcome-foot-right" }, [welcomeBrowseBtn]),
+    ]),
+  ]);
+
+  const welcomeCaps = [
+    "Lead Model",
+    "β & FTG Dynamics",
+    "Game Theory",
+    "Extreme-Value Risk",
+    "Option Pricing",
+    "Graph Signal Processing",
+  ];
+  const welcomeCapsEl = el("div", { class: "nr-welcome-caps" });
+  welcomeCaps.forEach((cap, idx) => {
+    if (idx > 0) welcomeCapsEl.appendChild(el("span", { class: "nr-welcome-cap-sep", text: "·" }));
+    welcomeCapsEl.appendChild(el("span", { class: "nr-welcome-cap", text: cap }));
+  });
+
+  const welcomeStageEl = el("div", { class: "nr-welcome-stage" }, [
+    el("div", { class: "nr-welcome-bg" }, [
+      el("div", { class: "nr-welcome-grid" }),
+      el("div", { class: "nr-welcome-glow" }),
+      buildWelcomeAmbientSVG(),
+    ]),
+    el("button", {
+      class: "nr-welcome-fs-btn",
+      type: "button",
+      title: "Toggle full-screen studio",
+      html: "⛶&nbsp;<span>Fullscreen</span>",
+      onclick: (ev) => { ev.stopPropagation(); toggleRootFullscreen(); },
+    }),
+    el("div", { class: "nr-welcome-hero" }, [
+      el("div", { class: "nr-welcome-logo-shell" }, [
+        el("div", { class: "nr-welcome-aura nr-welcome-aura-1" }),
+        el("div", { class: "nr-welcome-aura nr-welcome-aura-2" }),
+        el("div", { class: "nr-welcome-medallion" }, [titraIcon(50)]),
+      ]),
+      el("h1", { class: "nr-welcome-title" }, [
+        el("span", { text: "Welcome to " }),
+        el("span", { class: "nr-welcome-accent", text: "Titra" }),
+      ]),
+      el("p", { class: "nr-welcome-subtitle", text: "DBS Programming & Electrophysiology Studio" }),
+      welcomeInputBox,
+      welcomeCapsEl,
+    ]),
+  ]);
+
+  // ── Progress Stage (Shown immediately once an input is inserted; welcome message gone) ──
+  const PROGRESS_STEPS = [
+    { key: "read",    label: "Read",    detail: "Reading JSON file(s) from disk…" },
+    { key: "verify",  label: "Verify",  detail: "Detecting & verifying Percept™ recording schema…" },
+    { key: "analyse", label: "Analyse", detail: "Computing β/FTG, spectral, risk & graph bundles…" },
+    { key: "studio",  label: "Studio",  detail: "Assembling interactive Titra DAG workspace…" },
+  ];
+  const progressTitleEl = el("div", { class: "nr-progress-title", text: "Building Titra Pipeline" });
+  const progressPctEl = el("div", { class: "nr-progress-pct", text: "0%" });
+  const progressFileEl = el("div", { class: "nr-progress-file", text: "" });
+  const progressFillEl = el("div", { class: "nr-progress-fill" });
+  const progressDetailEl = el("div", { class: "nr-progress-detail", text: PROGRESS_STEPS[0].detail });
+  const progressStepEls = PROGRESS_STEPS.map((st, idx) =>
+    el("div", { class: "nr-progress-step", "data-step": String(idx) }, [
+      el("span", { class: "nr-progress-step-dot", text: String(idx + 1) }),
+      el("span", { class: "nr-progress-step-lbl", text: st.label }),
+    ])
+  );
+
+  const progressStageEl = el("div", { class: "nr-progress-stage", hidden: "" }, [
+    el("div", { class: "nr-progress-card" }, [
+      el("div", { class: "nr-progress-head" }, [
+        el("div", { class: "nr-progress-logo" }, [titraIcon(38)]),
+        el("div", { class: "nr-progress-meta" }, [
+          progressTitleEl,
+          progressFileEl,
+        ]),
+        progressPctEl,
+      ]),
+      el("div", { class: "nr-progress-track", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "0" }, [
+        progressFillEl,
+      ]),
+      el("div", { class: "nr-progress-steps" }, progressStepEls),
+      progressDetailEl,
+    ]),
+  ]);
+
+  root.appendChild(welcomeStageEl);
+  root.appendChild(progressStageEl);
+
+  function updateWelcomeError() {
+    const msg = _inputLocalError || "";
+    if (msg && !_welcomeDismissed) {
+      welcomeErrTextEl.textContent = msg;
+      welcomeErrEl.removeAttribute("hidden");
+    } else {
+      welcomeErrEl.setAttribute("hidden", "");
+    }
+  }
+
+  function refreshWelcomeFolderPicker() {
+    welcomeFolderWrap.innerHTML = "";
+    const files = (inputState().files || []);
+    if (!files.length) return;
+    const groups = {};
+    for (const f of files) (groups[f.folder || "(data folder)"] ||= []).push(f);
+    const opts = [el("option", { value: "", text: `…or pick from folder (${files.length})` })];
+    for (const [g, fs] of Object.entries(groups)) {
+      opts.push(el("optgroup", { label: g }, fs.map((f) =>
+        el("option", { value: f.path, text: `${f.combined ? "⧉ " : ""}${f.name} · ${f.size}` })
+      )));
+    }
+    const sel = el("select", {
+      class: "nr-welcome-folder-sel",
+      title: `Data folder: ${inputState().data_dir || ""}`,
+      onclick: (ev) => ev.stopPropagation(),
+      onchange: (ev) => {
+        const v = ev.target.value;
+        if (!v) return;
+        const picked = files.find((f) => f.path === v);
+        _inputLocalError = "";
+        _inputSel = v;
+        beginInputProgress([picked ? picked.name : v.split(/[\\/]/).pop()], "inspect_load");
+        requestAnimationFrame(() => setTimeout(() => {
+          setProgressPhase(1, 36);
+          inputRequest("inspect_load", { path: v });
+        }, 20));
+      },
+    }, opts);
+    welcomeFolderWrap.appendChild(sel);
+  }
+
+  function syncWelcomeVisibility() {
+    const showWelcome = !_welcomeDismissed && !hasData() && !_progress.active;
+    root.classList.toggle("nr-welcome-mode", showWelcome);
+    if (showWelcome) {
+      welcomeStageEl.removeAttribute("hidden");
+      refreshWelcomeFolderPicker();
+      updateWelcomeError();
+    } else {
+      welcomeStageEl.setAttribute("hidden", "");
+    }
+  }
+
+  function _renderProgressVisual() {
+    const pct = Math.round(clamp(_progress.pct, 0, 100));
+    progressFillEl.style.width = `${pct}%`;
+    progressPctEl.textContent = `${pct}%`;
+    const track = progressFillEl.parentElement;
+    if (track) track.setAttribute("aria-valuenow", String(pct));
+    progressStepEls.forEach((stepEl, idx) => {
+      const done = pct >= 100 || idx < _progress.phase;
+      const active = !done && idx === _progress.phase;
+      stepEl.classList.toggle("nr-step-done", done);
+      stepEl.classList.toggle("nr-step-active", active);
+      const dot = stepEl.querySelector(".nr-progress-step-dot");
+      if (dot) dot.textContent = done ? "✓" : String(idx + 1);
+    });
+  }
+
+  function setProgressPhase(phaseIdx, minPct, customDetail) {
+    if (!_progress.active) return;
+    _progress.phase = Math.max(_progress.phase, clamp(phaseIdx, 0, PROGRESS_STEPS.length - 1));
+    if (typeof minPct === "number") _progress.pct = Math.max(_progress.pct, minPct);
+    progressDetailEl.textContent = customDetail || PROGRESS_STEPS[_progress.phase].detail;
+    _renderProgressVisual();
+  }
+
+  function beginInputProgress(fileNames, action) {
+    _clearProgressTimers();
+    _welcomeDismissed = true; // Welcome message disappears permanently once input is inserted
+    _progress.active = true;
+    _progress.completing = false;
+    _progress.pct = 8;
+    _progress.phase = 0;
+    _progress.startAt = performance.now();
+
+    const names = (fileNames || []).filter(Boolean);
+    const fileLabel = names.length > 1
+      ? `${names[0]} + ${names.length - 1} more file${names.length > 2 ? "s" : ""}`
+      : (names[0] || "LFP JSON session");
+    const isMerge = action === "add" && hasData();
+    progressTitleEl.textContent = isMerge ? "Merging LFP Session" : "Building Titra Pipeline";
+    progressFileEl.textContent = fileLabel;
+    progressDetailEl.textContent = PROGRESS_STEPS[0].detail;
+
+    welcomeStageEl.setAttribute("hidden", "");
+    root.classList.remove("nr-welcome-mode");
+    root.classList.add("nr-loading-mode");
+    progressStageEl.classList.remove("nr-progress-exit");
+    progressStageEl.classList.toggle("nr-progress-overlay", hasData());
+    progressStageEl.classList.toggle("nr-progress-fullscreen", !hasData());
+    progressStageEl.removeAttribute("hidden");
+    _renderProgressVisual();
+
+    // Smooth asymptotic driver while Python verifies & parses
+    _progress.driverTimer = setInterval(() => {
+      if (!_progress.active || _progress.completing) return;
+      const elapsed = performance.now() - _progress.startAt;
+      if (_progress.phase === 0) {
+        // Gentle motion during file read if browser doesn't emit granular onprogress
+        _progress.pct = Math.min(30, _progress.pct + 1.4);
+      } else if (_progress.phase === 1) {
+        _progress.pct = Math.min(62, _progress.pct + (64 - _progress.pct) * 0.085);
+        if (_progress.pct >= 58 || elapsed > 900) {
+          _progress.phase = 2;
+          progressDetailEl.textContent = PROGRESS_STEPS[2].detail;
+        }
+      } else if (_progress.phase === 2) {
+        _progress.pct = Math.min(93, _progress.pct + (95 - _progress.pct) * 0.045);
+      }
+      _renderProgressVisual();
+    }, 75);
+  }
+
+  function finishInputProgress(ok) {
+    if (!_progress.active) return;
+    if (_progress.completing && ok) return;
+    _clearProgressTimers();
+    _progress.completing = true;
+
+    const revealStudio = () => {
+      progressStageEl.classList.add("nr-progress-exit");
+      _progress.hideTimer = setTimeout(() => {
+        _progress.active = false;
+        _progress.completing = false;
+        progressStageEl.setAttribute("hidden", "");
+        progressStageEl.classList.remove("nr-progress-exit", "nr-progress-overlay", "nr-progress-fullscreen");
+        root.classList.remove("nr-loading-mode");
+        syncWelcomeVisibility();
+        fitCanvasLegible();
+      }, 240);
+    };
+
+    if (ok) {
+      const elapsed = performance.now() - _progress.startAt;
+      const minShow = Math.max(0, 560 - elapsed);
+      setProgressPhase(3, 96, PROGRESS_STEPS[3].detail);
+      _progress.finishTimer = setTimeout(() => {
+        _progress.pct = 100;
+        _progress.phase = 3;
+        progressDetailEl.textContent = "Pipeline ready — opening Titra studio";
+        _renderProgressVisual();
+        _progress.finishTimer = setTimeout(revealStudio, 320);
+      }, minShow);
+    } else {
+      // Verification failed or aborted — dismiss progress bar cleanly & land on LFP Input diagnostics (no welcome)
+      _progress.finishTimer = setTimeout(revealStudio, 140);
+    }
+  }
+
   // ── Data Input object ───────────────────────────────────────────────
   let _inputPending = null;
   let _inputSel = null;
@@ -8965,64 +9371,113 @@ function render({ model, el: host }) {
   function renderInputNodes() {
     if (state.nodes.some((n) => n.type === "input")) renderAll();
   }
-  model.on("change:input_state", () => {
+  const onInputStateChange = () => {
     const st = inputState();
+    const prevAction = _inputPending ? _inputPending.action : "";
     if (_inputPending && (st.id === _inputPending.id || _inputPending.id === "reading")) _inputPending = null;
     if (st.selected) _inputSel = st.selected;
+    if (!_welcomeDismissed) refreshWelcomeFolderPicker();
     renderInputNodes();
-  });
+    if (_progress.active && !_progress.completing && !_inputPending && prevAction !== "scan") {
+      // Request completed without triggering change:payload (e.g., invalid JSON, merge conflict, or nothing new)
+      finishInputProgress(false);
+    }
+  };
+  model.on("change:input_state", onInputStateChange);
+
   function handleInputFile(f) {
     if (!f) return;
     if (!/\.json$/i.test(f.name) && f.type !== "application/json") {
       _inputLocalError = `${f.name}: only JSON files are LFP inputs today (MRI / CT inputs are planned).`;
       _inputSel = null;
+      updateWelcomeError();
       renderInputNodes();
       return;
     }
     if (f.size > 160e6) {
       _inputLocalError = `${f.name} is ${(f.size / 1e6).toFixed(0)} MB — too large to send from the browser; copy it into the data folder and pick it from the list.`;
+      updateWelcomeError();
       renderInputNodes();
       return;
     }
     _inputLocalError = "";
     _inputSel = `upload:${f.name}`;
     _inputPending = { id: "reading", action: "upload" };
+    beginInputProgress([f.name], "upload");
     renderInputNodes();
-    const rd = new FileReader();
-    rd.onerror = () => { _inputPending = null; _inputLocalError = `Could not read ${f.name}.`; renderInputNodes(); };
-    rd.onload = () => {
-      const u8 = new Uint8Array(rd.result);
-      let bin = "";
-      for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
-      inputRequest("upload", { name: f.name, b64: btoa(bin) });
-    };
-    rd.readAsArrayBuffer(f);
+    // Yield a frame so the welcome screen disappears and the progress bar paints before FileReader / btoa
+    requestAnimationFrame(() => setTimeout(() => {
+      const rd = new FileReader();
+      rd.onprogress = (ev) => {
+        if (ev.lengthComputable && ev.total > 0) {
+          const frac = ev.loaded / ev.total;
+          setProgressPhase(0, Math.round(8 + frac * 24), `Reading ${f.name} (${Math.round(frac * 100)}%)…`);
+        }
+      };
+      rd.onerror = () => {
+        _inputPending = null;
+        _inputLocalError = `Could not read ${f.name}.`;
+        finishInputProgress(false);
+        renderInputNodes();
+      };
+      rd.onload = () => {
+        setProgressPhase(1, 35, `Encoding & verifying ${f.name}…`);
+        requestAnimationFrame(() => {
+          const u8 = new Uint8Array(rd.result);
+          let bin = "";
+          for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+          inputRequest("upload", { name: f.name, b64: btoa(bin) });
+        });
+      };
+      rd.readAsArrayBuffer(f);
+    }, 20));
   }
   /** Read several JSON files to base64 and hand them to Python in one request. */
   function readFilesB64(files, done) {
     const list = Array.from(files || []).filter(Boolean);
     if (!list.length) return;
     const bad = list.find((f) => !/\.json$/i.test(f.name) && f.type !== "application/json");
-    if (bad) { _inputLocalError = `${bad.name}: only JSON files are LFP inputs today (MRI / CT inputs are planned).`; renderInputNodes(); return; }
+    if (bad) { _inputLocalError = `${bad.name}: only JSON files are LFP inputs today (MRI / CT inputs are planned).`; updateWelcomeError(); renderInputNodes(); return; }
     const big = list.find((f) => f.size > 160e6);
-    if (big) { _inputLocalError = `${big.name} is ${(big.size / 1e6).toFixed(0)} MB — too large to send from the browser; copy it into the data folder and pick it from the list.`; renderInputNodes(); return; }
+    if (big) { _inputLocalError = `${big.name} is ${(big.size / 1e6).toFixed(0)} MB — too large to send from the browser; copy it into the data folder and pick it from the list.`; updateWelcomeError(); renderInputNodes(); return; }
     _inputLocalError = "";
     _inputPending = { id: "reading", action: "add" };
+    beginInputProgress(list.map((f) => f.name), "add");
     renderInputNodes();
-    const out = new Array(list.length);
-    let left = list.length;
-    list.forEach((f, i) => {
-      const rd = new FileReader();
-      rd.onerror = () => { _inputPending = null; _inputLocalError = `Could not read ${f.name}.`; renderInputNodes(); };
-      rd.onload = () => {
-        const u8 = new Uint8Array(rd.result);
-        let bin = "";
-        for (let k = 0; k < u8.length; k += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(k, k + 0x8000));
-        out[i] = { name: f.name, b64: btoa(bin) };
-        if (--left === 0) done(out);
-      };
-      rd.readAsArrayBuffer(f);
-    });
+    requestAnimationFrame(() => setTimeout(() => {
+      const out = new Array(list.length);
+      const totalBytes = list.reduce((s, f) => s + (f.size || 1), 0);
+      const loadedBytes = new Array(list.length).fill(0);
+      let left = list.length;
+      list.forEach((f, i) => {
+        const rd = new FileReader();
+        rd.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            loadedBytes[i] = ev.loaded;
+            const frac = clamp(loadedBytes.reduce((a, b) => a + b, 0) / totalBytes, 0, 1);
+            setProgressPhase(0, Math.round(8 + frac * 24), `Reading ${list.length} JSON files (${Math.round(frac * 100)}%)…`);
+          }
+        };
+        rd.onerror = () => {
+          _inputPending = null;
+          _inputLocalError = `Could not read ${f.name}.`;
+          finishInputProgress(false);
+          renderInputNodes();
+        };
+        rd.onload = () => {
+          loadedBytes[i] = f.size || 1;
+          const u8 = new Uint8Array(rd.result);
+          let bin = "";
+          for (let k = 0; k < u8.length; k += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(k, k + 0x8000));
+          out[i] = { name: f.name, b64: btoa(bin) };
+          if (--left === 0) {
+            setProgressPhase(1, 36);
+            requestAnimationFrame(() => done(out));
+          }
+        };
+        rd.readAsArrayBuffer(f);
+      });
+    }, 20));
   }
   /** Merge more files into the loaded data (or start a dataset from several files with replace=true). */
   function addInputFiles(files, replace = false) {
@@ -9077,12 +9532,17 @@ function render({ model, el: host }) {
         if (!v || v.startsWith("upload:")) return;
         _inputLocalError = "";
         if (v.startsWith("add:")) {
+          const p = v.slice(4);
+          const picked = files.find((f) => f.path === p);
           ev.target.value = cur;
-          inputRequest("add", { path: v.slice(4) });
+          beginInputProgress([picked ? picked.name : p.split(/[\\/]/).pop()], "add");
+          requestAnimationFrame(() => setTimeout(() => { setProgressPhase(1, 36); inputRequest("add", { path: p }); }, 20));
           return;
         }
+        const picked = files.find((f) => f.path === v);
         _inputSel = v;
-        inputRequest("inspect_load", { path: v });
+        beginInputProgress([picked ? picked.name : v.split(/[\\/]/).pop()], "inspect_load");
+        requestAnimationFrame(() => setTimeout(() => { setProgressPhase(1, 36); inputRequest("inspect_load", { path: v }); }, 20));
       },
     }, opts);
     sel.value = cur;
@@ -10729,7 +11189,7 @@ function render({ model, el: host }) {
         parts.push(`<text x="14" y="78" font-family='${FONT_SANS}' font-size="14" font-weight="600" fill="${C.grayDark}">${escXml(txt)}</text>`);
       } else {
         const bw = Math.max(240, n.w - 20);
-        const bh = Math.max(160, n.h - 60);
+        const bh = Math.max(n.type === "ftg_controller" ? 86 : 160, n.h - 60);
         const content = buildNodeBodyContent(n, bw, bh);
         if (content instanceof SVGElement) {
           content.setAttribute("x", "10");
@@ -10769,7 +11229,7 @@ function render({ model, el: host }) {
     const spec = NODE_CATALOG[node.type] || NODE_CATALOG.psd;
     const pad = 16;
     const cardW = Math.max(420, Math.round(opts.width || Math.max(node.w || 0, spec.w)));
-    const cardH = Math.max(300, Math.round(opts.height || Math.max(node.h || 0, spec.h)));
+    const cardH = Math.max(node.type === "ftg_controller" ? 180 : 300, Math.round(opts.height || Math.max(node.h || 0, spec.h)));
     const headerH = 54;
     const W = cardW + pad * 2;
     const H = cardH + pad * 2;
@@ -11389,25 +11849,41 @@ function render({ model, el: host }) {
   } else {
     loadPreset(model.get("preset") || "beta_ftg");
   }
+  syncWelcomeVisibility();
 
-  // Drag & drop an LFP JSON anywhere on the canvas → LFP Input object
+  // Drag & drop an LFP JSON anywhere on the studio (welcome screen or DAG canvas) → LFP Input
   let _dragDepth = 0;
   const isFileDrag = (ev) => ev.dataTransfer && Array.from(ev.dataTransfer.types || []).includes("Files");
-  viewportEl.addEventListener("dragenter", (ev) => {
+  const setWelcomeDragLabel = (active) => {
+    welcomeDropTitleEl.textContent = active
+      ? "Release to load into Titra"
+      : "Drop an LFP JSON file here, or click to browse";
+  };
+  root.addEventListener("dragenter", (ev) => {
     if (!isFileDrag(ev)) return;
     ev.preventDefault();
     _dragDepth++;
     root.classList.add("nr-drop-active");
     root.setAttribute("data-drop-hint", inputState().loaded ? "Drop to ADD to the loaded data — merged into every object; conflicting files are rejected" : "Drop LFP JSON file(s) to load");
+    setWelcomeDragLabel(true);
   });
-  viewportEl.addEventListener("dragover", (ev) => { if (!isFileDrag(ev)) return; ev.preventDefault(); ev.dataTransfer.dropEffect = "copy"; });
-  viewportEl.addEventListener("dragleave", (ev) => { if (!isFileDrag(ev)) return; _dragDepth = Math.max(0, _dragDepth - 1); if (!_dragDepth) root.classList.remove("nr-drop-active"); });
-  viewportEl.addEventListener("drop", (ev) => {
+  root.addEventListener("dragover", (ev) => { if (!isFileDrag(ev)) return; ev.preventDefault(); ev.dataTransfer.dropEffect = "copy"; });
+  root.addEventListener("dragleave", (ev) => {
+    if (!isFileDrag(ev)) return;
+    _dragDepth = Math.max(0, _dragDepth - 1);
+    if (!_dragDepth) {
+      root.classList.remove("nr-drop-active");
+      setWelcomeDragLabel(false);
+    }
+  });
+  root.addEventListener("drop", (ev) => {
     if (!isFileDrag(ev)) return;
     ev.preventDefault();
     _dragDepth = 0;
     root.classList.remove("nr-drop-active");
+    setWelcomeDragLabel(false);
     const fs = Array.from((ev.dataTransfer && ev.dataTransfer.files) || []);
+    if (!fs.length) return;
     if (!state.nodes.some((n) => n.type === "input")) {
       state.nodes.unshift(inputRootNode(60, 60));
       renderAll();
@@ -11435,7 +11911,17 @@ function render({ model, el: host }) {
     _optCacheKey = "";
     _gspCacheKey = "";
     resetBandit(computeGT());
+    if (hasData()) {
+      _welcomeDismissed = true;
+      welcomeStageEl.setAttribute("hidden", "");
+      root.classList.remove("nr-welcome-mode");
+    }
     loadPreset((presetSel && presetSel.value) || model.get("preset") || "beta_ftg");
+    if (_progress.active) {
+      finishInputProgress(hasData());
+    } else {
+      syncWelcomeVisibility();
+    }
   });
   model.on("change:preset", () => {
     const p = model.get("preset");
@@ -11478,11 +11964,13 @@ function render({ model, el: host }) {
 
   return () => {
     if (state.bandit.timer) clearInterval(state.bandit.timer);
+    _clearProgressTimers();
     document.removeEventListener("fullscreenchange", onFullscreenChange);
     document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
     if (resizeObs) resizeObs.disconnect();
     if (_pendingReport) clearTimeout(_pendingReport.timer);
     model.off?.("change:report_result", onReportResult);
+    model.off?.("change:input_state", onInputStateChange);
     closeCtxMenu();
   };
 }

@@ -189,13 +189,13 @@ class NeuroReaderDAG(anywidget.AnyWidget):
         rid = req.get("id")
         if not rid:
             return
-        import nr_ingest
 
         action = req.get("action", "")
         st = dict(self.input_state or {})
         st.update({"id": rid, "action": action, "error": ""})
         t0 = time.perf_counter()
         try:
+            import nr_ingest
             if action == "scan":
                 if req.get("data_dir"):
                     self.data_dir = pathlib.Path(req["data_dir"])
